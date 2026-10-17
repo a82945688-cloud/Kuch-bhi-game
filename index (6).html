@@ -1,0 +1,1799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4-in-1 Offline Games</title>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --surface: rgba(255, 255, 255, 0.75);
+            --surface2: rgba(255, 255, 255, 0.55);
+            --text: #1a1a2e;
+            --text2: #4a4a6a;
+            --primary: #6c5ce7;
+            --primary2: #a29bfe;
+            --accent: #fd79a8;
+            --accent2: #fab1a0;
+            --neon: 0 0 20px rgba(108, 92, 231, 0.5);
+            --glass-border: rgba(255, 255, 255, 0.3);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --card-bg: rgba(255, 255, 255, 0.7);
+            --btn-bg: rgba(255, 255, 255, 0.6);
+            --input-bg: rgba(255, 255, 255, 0.8);
+            --canvas-bg: #ffffff;
+            --grid-color: #e0e0e0;
+        }
+        .dark {
+            --bg: #0f0f1a;
+            --surface: rgba(30, 30, 50, 0.8);
+            --surface2: rgba(30, 30, 50, 0.55);
+            --text: #e8e8f0;
+            --text2: #b0b0c0;
+            --primary: #a29bfe;
+            --primary2: #6c5ce7;
+            --accent: #fd79a8;
+            --accent2: #e84393;
+            --neon: 0 0 25px rgba(162, 155, 254, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            --card-bg: rgba(30, 30, 50, 0.7);
+            --btn-bg: rgba(40, 40, 60, 0.7);
+            --input-bg: rgba(40, 40, 60, 0.8);
+            --canvas-bg: #1a1a2e;
+            --grid-color: #333;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            transition: background 0.5s, color 0.5s;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            background-image: radial-gradient(ellipse at 20% 20%, var(--primary2) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 60%, var(--accent2) 0%, transparent 60%),
+                radial-gradient(ellipse at 50% 80%, var(--primary) 0%, transparent 50%);
+            background-attachment: fixed;
+        }
+        .app-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 16px;
+            min-height: 100vh;
+            position: relative;
+        }
+        .screen {
+            display: none;
+            animation: fadeSlideIn 0.4s ease;
+        }
+        .screen.active {
+            display: block;
+        }
+        @keyframes fadeSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes confettiFall {
+            0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+        @keyframes glowPulse {
+            0%, 100% { box-shadow: var(--neon); }
+            50% { box-shadow: 0 0 40px rgba(108, 92, 231, 0.9), 0 0 80px rgba(253, 121, 168, 0.5); }
+        }
+        .glass-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s;
+        }
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+        }
+        .home-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 20px;
+            padding: 10px;
+        }
+        .game-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 2px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 28px 20px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+            animation: float 3s ease-in-out infinite;
+        }
+        .game-card:nth-child(1) { animation-delay: 0s; }
+        .game-card:nth-child(2) { animation-delay: 0.5s; }
+        .game-card:nth-child(3) { animation-delay: 1s; }
+        .game-card:nth-child(4) { animation-delay: 1.5s; }
+        .game-card:hover {
+            transform: translateY(-8px) scale(1.03);
+            animation: glowPulse 2s infinite;
+            border-color: var(--primary);
+        }
+        .game-card:active { transform: scale(0.96); }
+        .game-card .icon {
+            font-size: 56px;
+            margin-bottom: 12px;
+            display: block;
+            filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+        }
+        .game-card .title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--text);
+            letter-spacing: 0.5px;
+        }
+        .game-card .subtitle {
+            font-size: 0.75rem;
+            color: var(--text2);
+            margin-top: 4px;
+        }
+        .floating-home {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            z-index: 1000;
+            box-shadow: 0 6px 24px rgba(108, 92, 231, 0.5);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .floating-home:hover {
+            transform: scale(1.1);
+            box-shadow: 0 8px 32px rgba(108, 92, 231, 0.7);
+        }
+        .btn {
+            padding: 12px 24px;
+            border-radius: 14px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s;
+            letter-spacing: 0.3px;
+            background: var(--btn-bg);
+            backdrop-filter: blur(10px);
+            color: var(--text);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+        .btn:active { transform: scale(0.95); }
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+            border: none;
+        }
+        .btn-accent {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+        }
+        .btn-sm {
+            padding: 8px 16px;
+            font-size: 0.8rem;
+            border-radius: 10px;
+        }
+        .btn-xs {
+            padding: 5px 10px;
+            font-size: 0.7rem;
+            border-radius: 8px;
+        }
+        .row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .mt-2 { margin-top: 16px; }
+        .mt-3 { margin-top: 24px; }
+        .mb-2 { margin-bottom: 16px; }
+        .text-center { text-align: center; }
+        .badge {
+            display: inline-block;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            background: var(--surface2);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+        }
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary);
+        }
+        select {
+            padding: 10px 14px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            background: var(--input-bg);
+            color: var(--text);
+            font-size: 0.9rem;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+        .confetti-piece {
+            position: fixed;
+            width: 12px;
+            height: 12px;
+            border-radius: 3px;
+            pointer-events: none;
+            z-index: 9999;
+            animation: confettiFall 2.5s ease-in forwards;
+        }
+        canvas {
+            border-radius: 16px;
+            box-shadow: var(--shadow);
+            background: var(--canvas-bg);
+            touch-action: none;
+        }
+        .color-palette {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            justify-content: center;
+        }
+        .color-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        .color-swatch:hover, .color-swatch.active {
+            border-color: var(--text);
+            transform: scale(1.2);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+        .tic-cell {
+            width: 80px;
+            height: 80px;
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+            border: 2px solid var(--glass-border);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: var(--text);
+        }
+        .tic-cell:hover {
+            background: var(--surface2);
+            border-color: var(--primary);
+            box-shadow: var(--neon);
+        }
+        .tic-cell.win-cell {
+            animation: glowPulse 0.8s infinite;
+            background: rgba(108, 92, 231, 0.25);
+            border-color: var(--primary);
+        }
+        .tic-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            justify-items: center;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+        .spinner-wheel {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: conic-gradient(var(--primary), var(--accent), var(--primary2), var(--accent2), var(--primary));
+            animation: spin 0.5s linear infinite;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 40px rgba(108, 92, 231, 0.5);
+        }
+        .spinner-wheel.stopping {
+            animation: spin 1.5s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+        }
+        .spinner-inner {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--surface);
+            backdrop-filter: blur(10px);
+        }
+        @media (max-width: 480px) {
+            .home-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .game-card { padding: 20px 14px; }
+            .game-card .icon { font-size: 38px; }
+            .game-card .title { font-size: 0.9rem; }
+            .tic-cell { width: 60px; height: 60px; font-size: 30px; border-radius: 12px; }
+            .tic-board { gap: 6px; max-width: 210px; }
+            .floating-home { bottom: 16px; right: 16px; width: 42px; height: 42px; font-size: 20px; }
+            .btn { padding: 10px 16px; font-size: 0.8rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container" id="appContainer">
+        <!-- Home Screen -->
+        <div class="screen active" id="homeScreen">
+            <h1 style="text-align:center;font-weight:800;font-size:1.8rem;margin-bottom:8px;letter-spacing:-0.5px;">🎮 4-in-1 Mazedaar Games</h1>
+            <p style="text-align:center;color:var(--text2);margin-bottom:24px;font-size:0.9rem;">Bina Internet ke khelo • No Wi-Fi Needed</p>
+            <div class="home-grid">
+                <div class="game-card" onclick="openGame('ticTacToe')">
+                    <span class="icon">🎮</span>
+                    <div class="title">Tic Tac Toe</div>
+                    <div class="subtitle">Akele ya Doston ke Saath</div>
+                </div>
+                <div class="game-card" onclick="openGame('coloringBook')">
+                    <span class="icon">🎨</span>
+                    <div class="title">Coloring Book</div>
+                    <div class="subtitle">Drawing aur Colors Karo</div>
+                </div>
+                <div class="game-card" onclick="openGame('truthOrDare')">
+                    <span class="icon">😂</span>
+                    <div class="title">Truth or Dare</div>
+                    <div class="subtitle">300+ Mazedaar Sawal</div>
+                </div>
+                <div class="game-card" onclick="openGame('randomChallenge')">
+                    <span class="icon">🔥</span>
+                    <div class="title">Random Challenge</div>
+                    <div class="subtitle">500+ Fun Tasks</div>
+                </div>
+            </div>
+            <div class="text-center mt-3">
+                <button class="btn" onclick="openSettings()" style="margin-right:8px;">⚙️ Settings</button>
+                <button class="btn" onclick="showAbout()">ℹ️ Hamare Bare Mein</button>
+            </div>
+        </div>
+
+        <!-- Tic Tac Toe Screen -->
+        <div class="screen" id="ticTacToeScreen">
+            <div class="glass-card text-center">
+                <h2 style="margin-bottom:8px;">🎮 Tic Tac Toe</h2>
+                <div class="row" style="justify-content:center;margin-bottom:12px;">
+                    <select id="tttMode" onchange="resetTTT()">
+                        <option value="pvp">👥 Do Dost (2 Player)</option>
+                        <option value="easy">🤖 Easy Bot ke Saath</option>
+                        <option value="medium">🤖 Medium Bot ke Saath</option>
+                        <option value="hard" selected>🤖 Pro Bot (Hard Mode)</option>
+                    </select>
+                </div>
+                <div class="tic-board" id="tttBoard"></div>
+                <p id="tttStatus" style="margin:12px 0;font-weight:600;min-height:24px;">Aapki baari hai (X)</p>
+                <div class="row" style="justify-content:center;">
+                    <span class="badge">🧑 X Score: <b id="scoreX">0</b></span>
+                    <span class="badge">🤖 O Score: <b id="scoreO">0</b></span>
+                    <span class="badge">🤝 Draw: <b id="scoreDraw">0</b></span>
+                </div>
+                <div class="row mt-2" style="justify-content:center;">
+                    <button class="btn btn-sm" onclick="resetTTT()">🔄 Dobara Shuru Karo</button>
+                    <button class="btn btn-sm btn-accent" onclick="resetTTTScores()">🗑️ Score Zero Karo</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Coloring Book Screen -->
+        <div class="screen" id="coloringBookScreen">
+            <div class="glass-card">
+                <h2 style="text-align:center;margin-bottom:8px;">🎨 Coloring Book</h2>
+                <div class="row" style="justify-content:center;margin-bottom:8px;">
+                    <select id="coloringPage" onchange="loadColoringPage()">
+                        <option value="blank">📄 Khaali Canvas</option>
+                        <option value="cat">🐱 Billi (Cat)</option>
+                        <option value="dog">🐶 Kutta (Dog)</option>
+                        <option value="rabbit">🐰 Khargosh (Rabbit)</option>
+                        <option value="bird">🐦 Chidiya (Bird)</option>
+                        <option value="fish">🐟 Machhli (Fish)</option>
+                        <option value="elephant">🐘 Hathi (Elephant)</option>
+                        <option value="butterfly">🦋 Titli (Butterfly)</option>
+                        <option value="rose">🌹 Gulab (Rose)</option>
+                        <option value="sunflower">🌻 Surajmukhi (Sunflower)</option>
+                        <option value="tulip">🌷 Tulip Phool</option>
+                        <option value="tree">🌳 Ped (Tree)</option>
+                        <option value="mountain">⛰️ Pahar (Mountain)</option>
+                        <option value="sun">☀️ Suraj aur Badal</option>
+                        <option value="car">🚗 Gaadi (Car)</option>
+                        <option value="apple">🍎 Seb (Apple)</option>
+                        <option value="strawberry">🍓 Strawberry</option>
+                        <option value="watermelon">🍉 Tarbooz (Watermelon)</option>
+                        <option value="house">🏠 Ghar (House)</option>
+                        <option value="star">⭐ Tara (Star)</option>
+                        <option value="heart">❤️ Dil (Heart)</option>
+                    </select>
+                </div>
+                <div class="color-palette mb-2" id="colorPalette"></div>
+                <div class="row" style="justify-content:center;flex-wrap:wrap;">
+                    <button class="btn btn-xs" onclick="setTool('brush')" id="toolBrush">🖌️ Brush</button>
+                    <button class="btn btn-xs" onclick="setTool('fill')" id="toolFill">🪣 Paint Bucket</button>
+                    <button class="btn btn-xs" onclick="setTool('eraser')" id="toolEraser">🧹 Eraser</button>
+                    <button class="btn btn-xs" onclick="undoCanvas()">↩️ Peeche Jao (Undo)</button>
+                    <button class="btn btn-xs" onclick="redoCanvas()">↪️ Aage Jao (Redo)</button>
+                    <button class="btn btn-xs" onclick="clearCanvas()">🗑️ Sab Mitao</button>
+                    <button class="btn btn-xs" onclick="saveArtwork()">💾 Save Karo</button>
+                    <button class="btn btn-xs" onclick="loadArtwork()">📂 Load Karo</button>
+                    <button class="btn btn-xs" onclick="downloadArtwork()">📥 Download Photo</button>
+                    <button class="btn btn-xs" onclick="randomColor()">🎲 Random Rang</button>
+                </div>
+                <div class="text-center mt-2" style="position:relative;display:inline-block;width:100%;">
+                    <canvas id="coloringCanvas" width="500" height="500" style="max-width:100%;height:auto;cursor:crosshair;"></canvas>
+                </div>
+                <div class="row" style="justify-content:center;margin-top:8px;">
+                    <span class="badge">🔍 Zoom: <span id="zoomLevel">100</span>%</span>
+                    <button class="btn btn-xs" onclick="zoomCanvas(10)">➕ Badhao</button>
+                    <button class="btn btn-xs" onclick="zoomCanvas(-10)">➖ Ghatao</button>
+                    <button class="btn btn-xs" onclick="panCanvas('left')">⬅️</button>
+                    <button class="btn btn-xs" onclick="panCanvas('right')">➡️</button>
+                    <button class="btn btn-xs" onclick="panCanvas('up')">⬆️</button>
+                    <button class="btn btn-xs" onclick="panCanvas('down')">⬇️</button>
+                    <button class="btn btn-xs" onclick="resetPanZoom()">🔲 Reset View</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Truth or Dare Screen -->
+        <div class="screen" id="truthOrDareScreen">
+            <div class="glass-card text-center">
+                <h2 style="margin-bottom:8px;">😂 Truth or Dare</h2>
+                <div class="row" style="justify-content:center;margin-bottom:12px;">
+                    <select id="todCategory">
+                        <option value="all">🌐 Sabhi Category</option>
+                        <option value="kids">👶 Bachho ke Liye</option>
+                        <option value="friends">👫 Dosto ke Saath</option>
+                        <option value="family">👨‍👩‍👧‍👦 Family ke Saath</option>
+                        <option value="funny">🤣 Hasane Wale</option>
+                        <option value="party">🎉 Party Mode</option>
+                        <option value="couples">💑 Couples ke Liye</option>
+                        <option value="extreme">🔥 Khatarnak (Extreme)</option>
+                    </select>
+                </div>
+                <div id="todDisplay" style="min-height:120px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:500;padding:20px;background:var(--surface2);border-radius:16px;margin:12px 0;line-height:1.5;">
+                    Neeche diye gaye button par click karo!
+                </div>
+                <div class="row" style="justify-content:center;gap:16px;">
+                    <button class="btn btn-primary" onclick="getTruth()" style="font-size:1.1rem;padding:14px 28px;">✅ Sach (Truth)</button>
+                    <button class="btn btn-accent" onclick="getDare()" style="font-size:1.1rem;padding:14px 28px;">🔥 Himmat (Dare)</button>
+                </div>
+                <div class="row mt-2" style="justify-content:center;">
+                    <button class="btn btn-sm" onclick="copyTOD()">📋 Copy Karo</button>
+                    <button class="btn btn-sm" onclick="toggleFavoriteTOD()">⭐ Favorite Me Jodo</button>
+                    <button class="btn btn-sm" onclick="showFavoritesTOD()">💾 Favorites Dekho</button>
+                    <button class="btn btn-sm" onclick="shuffleRemainingTOD()">🔀 Naye Sawal Lao</button>
+                </div>
+                <p style="font-size:0.7rem;color:var(--text2);margin-top:8px;">Bache hue: <span id="todRemaining">600</span> | Favorites: <span id="todFavCount">0</span></p>
+            </div>
+        </div>
+
+        <!-- Random Challenge Screen -->
+        <div class="screen" id="randomChallengeScreen">
+            <div class="glass-card text-center">
+                <h2 style="margin-bottom:8px;">🔥 Random Challenge</h2>
+                <div class="row" style="justify-content:center;margin-bottom:12px;">
+                    <select id="rcCategory">
+                        <option value="all">🌐 Sabhi</option>
+                        <option value="funny">🤣 Comedy / Mazakia</option>
+                        <option value="fitness">💪 Fitness Task</option>
+                        <option value="creative">🎨 Creative Kaam</option>
+                        <option value="family">👨‍👩‍👧‍👦 Family Task</option>
+                        <option value="friends">👫 Dosto ke Sath</option>
+                        <option value="indoor">🏠 Ghar ke Andar</option>
+                        <option value="outdoor">🌳 Bahar Jake Khelo</option>
+                        <option value="easy">😊 Aasan (Easy)</option>
+                        <option value="hard">💀 Mushkil (Hard)</option>
+                    </select>
+                </div>
+                <div id="spinnerContainer" style="margin:16px 0;">
+                    <div class="spinner-wheel" id="spinnerWheel"><div class="spinner-inner"></div></div>
+                </div>
+                <div id="rcDisplay" style="min-height:80px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:500;padding:20px;background:var(--surface2);border-radius:16px;margin:12px 0;line-height:1.5;">
+                    Spin ghumao aur apna task pao!
+                </div>
+                <div class="row" style="justify-content:center;gap:12px;">
+                    <button class="btn btn-primary" onclick="spinChallenge()">🎰 Spin Karo!</button>
+                    <button class="btn btn-accent" onclick="getRandomChallenge()">🎲 Koi Bhi Do</button>
+                </div>
+                <div class="row mt-2" style="justify-content:center;">
+                    <button class="btn btn-sm" onclick="copyRC()">📋 Copy Karo</button>
+                    <button class="btn btn-sm" onclick="toggleFavoriteRC()">⭐ Favorite</button>
+                    <button class="btn btn-sm" onclick="markCompletedRC()">✅ Ho Gaya (<span id="rcCompleted">0</span>)</button>
+                    <button class="btn btn-sm" onclick="shuffleRemainingRC()">🔀 Mix Karo</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Screen -->
+        <div class="screen" id="settingsScreen">
+            <div class="glass-card">
+                <h2 style="text-align:center;margin-bottom:16px;">⚙️ Settings</h2>
+                <div style="max-width:400px;margin:0 auto;">
+                    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:16px;">
+                        <span>🌙 Dark Mode (Andhera Theme)</span>
+                        <button class="btn btn-sm" onclick="toggleDarkMode()" id="darkModeBtn">Badlo</button>
+                    </div>
+                    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:16px;">
+                        <span>🔊 Awaaz (Sound Effects)</span>
+                        <button class="btn btn-sm" onclick="toggleSound()" id="soundBtn">On</button>
+                    </div>
+                    <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:16px;">
+                        <span>🗑️ Sara Data Reset Karo</span>
+                        <button class="btn btn-sm btn-accent" onclick="resetAllData()">Reset</button>
+                    </div>
+                    <p style="font-size:0.7rem;color:var(--text2);text-align:center;">Aapka saara score aur progress aapke phone me hi save hota hai.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- About Screen -->
+        <div class="screen" id="aboutScreen">
+            <div class="glass-card text-center">
+                <h2>ℹ️ Hamare Bare Mein</h2>
+                <p style="margin:12px 0;">🎮 <b>4-in-1 Offline Games</b></p>
+                <p style="color:var(--text2);">Char behtareen games ek hi app me. Bina internet ke aaram se khelo — koi data nahi chahiye! Koi ads nahi, bas pure maze.</p>
+                <p style="color:var(--text2);margin-top:8px;">📱 Mobile Friendly • 🌙 Dark Mode Support • 💾 Auto Save</p>
+                <button class="btn btn-primary mt-2" onclick="goHome()">🏠 Home Par Jao</button>
+            </div>
+        </div>
+    </div>
+
+    <button class="floating-home" id="floatingHome" onclick="goHome()" title="Home">🏠</button>
+
+    <script>
+        // ==================== APP STATE ====================
+        let currentScreen = 'homeScreen';
+        let soundEnabled = true;
+        let darkMode = localStorage.getItem('darkMode') === 'true';
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        // ==================== SOUND ENGINE ====================
+        function playBeep(freq = 600, duration = 0.12, type = 'sine') {
+            if (!soundEnabled) return;
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {}
+        }
+
+        function playClick() { playBeep(800, 0.08, 'sine'); }
+
+        function playWin() {
+            playBeep(523, 0.15, 'sine');
+            setTimeout(() => playBeep(659, 0.15, 'sine'), 150);
+            setTimeout(() => playBeep(784, 0.25, 'sine'), 300);
+        }
+
+        function playSpinSound() {
+            for (let i = 0; i < 8; i++) {
+                setTimeout(() => playBeep(400 + i * 80, 0.06, 'square'), i * 60);
+            }
+        }
+
+        // ==================== NAVIGATION ====================
+        function showScreen(name) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            const screen = document.getElementById(name + 'Screen');
+            if (screen) screen.classList.add('active');
+            currentScreen = name;
+            document.getElementById('floatingHome').style.display = (name === 'homeScreen') ? 'none' : 'flex';
+            if (name === 'ticTacToe') initTTT();
+            if (name === 'coloringBook') initColoringBook();
+            if (name === 'truthOrDare') updateTODCounts();
+            if (name === 'randomChallenge') updateRCCounts();
+            saveAppState();
+        }
+
+        function openGame(game) { playClick(); showScreen(game); }
+        function goHome() { playClick(); showScreen('homeScreen'); }
+        function openSettings() { playClick(); showScreen('settings'); }
+        function showAbout() { playClick(); showScreen('about'); }
+
+        // ==================== DARK MODE ====================
+        function applyDarkMode() {
+            document.body.classList.toggle('dark', darkMode);
+            document.getElementById('darkModeBtn').textContent = darkMode ? '☀️ Light Mode' : '🌙 Dark Mode';
+            localStorage.setItem('darkMode', darkMode);
+        }
+
+        function toggleDarkMode() {
+            playClick();
+            darkMode = !darkMode;
+            applyDarkMode();
+        }
+
+        function toggleSound() {
+            soundEnabled = !soundEnabled;
+            document.getElementById('soundBtn').textContent = soundEnabled ? 'On 🔊' : 'Off 🔇';
+            localStorage.setItem('soundEnabled', soundEnabled);
+            if (soundEnabled) playBeep(500, 0.05);
+        }
+
+        function resetAllData() {
+            if (confirm('Kya aap saara save kiya hua data mitaana chahte ho? Yeh wapas nahi aayega.')) {
+                localStorage.clear();
+                darkMode = false;
+                soundEnabled = true;
+                applyDarkMode();
+                document.getElementById('soundBtn').textContent = 'On 🔊';
+                tttScores = { X: 0, O: 0, draw: 0 };
+                updateTTTScores();
+                todUsed = [];
+                todFavorites = [];
+                rcUsed = [];
+                rcFavorites = [];
+                rcCompletedCount = 0;
+                updateTODCounts();
+                updateRCCounts();
+                goHome();
+                playClick();
+            }
+        }
+
+        function saveAppState() {
+            const state = { currentScreen, tttScores, todUsed, todFavorites, rcUsed, rcFavorites, rcCompletedCount, coloringData };
+            localStorage.setItem('appState', JSON.stringify(state));
+        }
+
+        function loadAppState() {
+            const saved = localStorage.getItem('appState');
+            if (saved) {
+                try {
+                    const state = JSON.parse(saved);
+                    if (state.tttScores) tttScores = state.tttScores;
+                    if (state.todUsed) todUsed = state.todUsed;
+                    if (state.todFavorites) todFavorites = state.todFavorites;
+                    if (state.rcUsed) rcUsed = state.rcUsed;
+                    if (state.rcFavorites) rcFavorites = state.rcFavorites;
+                    if (state.rcCompletedCount !== undefined) rcCompletedCount = state.rcCompletedCount;
+                    if (state.coloringData) coloringData = state.coloringData;
+                } catch (e) {}
+            }
+        }
+
+        // ==================== TIC TAC TOE ====================
+        let tttBoard = ['', '', '', '', '', '', '', '', ''];
+        let tttCurrentPlayer = 'X';
+        let tttGameOver = false;
+        let tttMode = 'hard';
+        let tttScores = { X: 0, O: 0, draw: 0 };
+
+        function initTTT() {
+            tttMode = document.getElementById('tttMode').value;
+            tttBoard = ['', '', '', '', '', '', '', '', ''];
+            tttCurrentPlayer = 'X';
+            tttGameOver = false;
+            document.getElementById('tttStatus').textContent = 'Aapki baari hai (X)';
+            renderTTTBoard();
+            updateTTTScores();
+        }
+
+        function resetTTT() { playClick(); initTTT(); }
+
+        function resetTTTScores() {
+            playClick();
+            tttScores = { X: 0, O: 0, draw: 0 };
+            updateTTTScores();
+            saveAppState();
+        }
+
+        function updateTTTScores() {
+            document.getElementById('scoreX').textContent = tttScores.X;
+            document.getElementById('scoreO').textContent = tttScores.O;
+            document.getElementById('scoreDraw').textContent = tttScores.draw;
+            saveAppState();
+        }
+
+        function renderTTTBoard() {
+            const boardEl = document.getElementById('tttBoard');
+            boardEl.innerHTML = '';
+            tttBoard.forEach((val, i) => {
+                const cell = document.createElement('div');
+                cell.className = 'tic-cell';
+                cell.textContent = val;
+                cell.onclick = () => tttCellClick(i);
+                boardEl.appendChild(cell);
+            });
+        }
+
+        function tttCellClick(i) {
+            if (tttGameOver || tttBoard[i] !== '') return;
+            if (tttMode !== 'pvp' && tttCurrentPlayer === 'O') return;
+            playClick();
+            tttBoard[i] = tttCurrentPlayer;
+            renderTTTBoard();
+            const winner = checkTTTWinner();
+            if (winner) {
+                tttGameOver = true;
+                document.getElementById('tttStatus').textContent = `${winner} jeet gaya! 🎉`;
+                tttScores[winner] = (tttScores[winner] || 0) + 1;
+                updateTTTScores();
+                highlightWinCells();
+                playWin();
+                spawnConfetti();
+                return;
+            }
+            if (tttBoard.every(c => c !== '')) {
+                tttGameOver = true;
+                document.getElementById('tttStatus').textContent = "Match Draw ho gaya! 🤝";
+                tttScores.draw++;
+                updateTTTScores();
+                return;
+            }
+            tttCurrentPlayer = tttCurrentPlayer === 'X' ? 'O' : 'X';
+            document.getElementById('tttStatus').textContent = (tttMode === 'pvp') ? 
+                `Khiladi ${tttCurrentPlayer} ki baari hai` : 
+                (tttCurrentPlayer === 'X' ? 'Aapki baari hai (X)' : 'Bot soch raha hai...');
+            if (tttMode !== 'pvp' && tttCurrentPlayer === 'O' && !tttGameOver) {
+                setTimeout(aiMove, 350);
+            }
+        }
+
+        function aiMove() {
+            if (tttGameOver) return;
+            const mode = document.getElementById('tttMode').value;
+            let move;
+            if (mode === 'easy') move = randomMove();
+            else if (mode === 'medium') move = Math.random() < 0.5 ? randomMove() : bestMove();
+            else move = bestMove();
+            if (move !== -1) {
+                tttBoard[move] = 'O';
+                renderTTTBoard();
+                const winner = checkTTTWinner();
+                if (winner) {
+                    tttGameOver = true;
+                    document.getElementById('tttStatus').textContent = `${winner} jeet gaya! 😔`;
+                    tttScores[winner] = (tttScores[winner] || 0) + 1;
+                    updateTTTScores();
+                    highlightWinCells();
+                    playWin();
+                    spawnConfetti();
+                    return;
+                }
+                if (tttBoard.every(c => c !== '')) {
+                    tttGameOver = true;
+                    document.getElementById('tttStatus').textContent = "Match Draw ho gaya! 🤝";
+                    tttScores.draw++;
+                    updateTTTScores();
+                    return;
+                }
+                tttCurrentPlayer = 'X';
+                document.getElementById('tttStatus').textContent = 'Aapki baari hai (X)';
+            }
+        }
+
+        function randomMove() {
+            const empty = tttBoard.map((v, i) => v === '' ? i : -1).filter(i => i >= 0);
+            return empty.length ? empty[Math.floor(Math.random() * empty.length)] : -1;
+        }
+
+        function bestMove() {
+            let bestScore = -Infinity;
+            let move = -1;
+            for (let i = 0; i < 9; i++) {
+                if (tttBoard[i] === '') {
+                    tttBoard[i] = 'O';
+                    let score = minimax(tttBoard, 0, false, -Infinity, Infinity);
+                    tttBoard[i] = '';
+                    if (score > bestScore) { bestScore = score; move = i; }
+                }
+            }
+            return move;
+        }
+
+        function minimax(board, depth, isMaximizing, alpha, beta) {
+            const winner = checkTTTWinnerOnBoard(board);
+            if (winner === 'O') return 10 - depth;
+            if (winner === 'X') return depth - 10;
+            if (board.every(c => c !== '')) return 0;
+            if (isMaximizing) {
+                let maxEval = -Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === '') {
+                        board[i] = 'O';
+                        let ev = minimax(board, depth + 1, false, alpha, beta);
+                        board[i] = '';
+                        maxEval = Math.max(maxEval, ev);
+                        alpha = Math.max(alpha, ev);
+                        if (beta <= alpha) break;
+                    }
+                }
+                return maxEval;
+            } else {
+                let minEval = Infinity;
+                for (let i = 0; i < 9; i++) {
+                    if (board[i] === '') {
+                        board[i] = 'X';
+                        let ev = minimax(board, depth + 1, true, alpha, beta);
+                        board[i] = '';
+                        minEval = Math.min(minEval, ev);
+                        beta = Math.min(beta, ev);
+                        if (beta <= alpha) break;
+                    }
+                }
+                return minEval;
+            }
+        }
+
+        function checkTTTWinner() { return checkTTTWinnerOnBoard(tttBoard); }
+
+        function checkTTTWinnerOnBoard(board) {
+            const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            for (const [a,b,c] of wins) {
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) return board[a];
+            }
+            return null;
+        }
+
+        function getWinCells() {
+            const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+            for (const [a,b,c] of wins) {
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) return [a,b,c];
+            }
+            return [];
+        }
+
+        function highlightWinCells() {
+            const winCells = getWinCells();
+            const cells = document.querySelectorAll('#tttBoard .tic-cell');
+            winCells.forEach(i => cells[i]?.classList.add('win-cell'));
+        }
+
+        function spawnConfetti() {
+            const colors = ['#ff6b6b', '#ffd93d', '#6bcb77', '#4d96ff', '#ff6b9d', '#c44dff', '#00d2d3'];
+            for (let i = 0; i < 60; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = Math.random() * 100 + '%';
+                piece.style.top = -(Math.random() * 100) + 'px';
+                piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                piece.style.width = (8 + Math.random() * 14) + 'px';
+                piece.style.height = (8 + Math.random() * 14) + 'px';
+                piece.style.animationDuration = (2 + Math.random() * 3) + 's';
+                piece.style.animationDelay = Math.random() * 0.8 + 's';
+                document.body.appendChild(piece);
+                setTimeout(() => piece.remove(), 3500);
+            }
+        }
+
+        // ==================== COLORING BOOK ====================
+        let coloringCanvas, coloringCtx, coloringTool = 'brush', coloringColor = '#e74c3c';
+        let coloringUndoStack = [], coloringRedoStack = [];
+        let coloringIsDrawing = false;
+        let coloringZoom = 1, coloringPanX = 0, coloringPanY = 0;
+        let coloringData = null;
+        let currentColoringPage = 'blank';
+
+        const colorPaletteColors = [
+            '#e74c3c', '#c0392b', '#e91e63', '#9b59b6', '#8e44ad', '#6c5ce7', '#3498db', '#2980b9',
+            '#00bcd4', '#009688', '#2ecc71', '#27ae60', '#4caf50', '#8bc34a', '#cddc39', '#f1c40f',
+            '#f39c12', '#e67e22', '#ff9800', '#ff5722', '#795548', '#607d8b', '#9e9e9e', '#34495e',
+            '#1a1a2e', '#ffffff', '#f5f5f5', '#dcdde1', '#f8c291', '#f6e58d', '#ff7979', '#badc58',
+            '#7ed6df', '#e056a0', '#686de0', '#30336b', '#130f40', '#535c68', '#dfe6e9', '#fab1a0',
+            '#fd79a8', '#a29bfe', '#81ecec', '#ffeaa7'
+        ];
+
+        function initColoringBook() {
+            coloringCanvas = document.getElementById('coloringCanvas');
+            coloringCtx = coloringCanvas.getContext('2d');
+            buildColorPalette();
+            loadColoringPage();
+            if (coloringData) {
+                const img = new Image();
+                img.onload = () => { coloringCtx.drawImage(img, 0, 0); coloringUndoStack = [coloringCtx.getImageData(0,0,coloringCanvas.width,coloringCanvas.height)]; };
+                img.src = coloringData;
+            }
+            setupCanvasEvents();
+            document.getElementById('toolBrush').classList.add('btn-primary');
+        }
+
+        function buildColorPalette() {
+            const palette = document.getElementById('colorPalette');
+            palette.innerHTML = '';
+            colorPaletteColors.forEach(c => {
+                const swatch = document.createElement('div');
+                swatch.className = 'color-swatch';
+                swatch.style.backgroundColor = c;
+                if (c === coloringColor) swatch.classList.add('active');
+                swatch.onclick = () => {
+                    coloringColor = c;
+                    coloringTool = 'brush';
+                    document.querySelectorAll('#colorPalette .color-swatch').forEach(s => s.classList.remove('active'));
+                    swatch.classList.add('active');
+                    updateToolButtons();
+                };
+                palette.appendChild(swatch);
+            });
+        }
+
+        function setTool(tool) {
+            coloringTool = tool;
+            updateToolButtons();
+            playClick();
+        }
+
+        function updateToolButtons() {
+            ['brush', 'fill', 'eraser'].forEach(t => {
+                const btn = document.getElementById('tool' + t.charAt(0).toUpperCase() + t.slice(1));
+                if (btn) btn.classList.toggle('btn-primary', coloringTool === t);
+            });
+        }
+
+        function randomColor() {
+            coloringColor = colorPaletteColors[Math.floor(Math.random() * colorPaletteColors.length)];
+            coloringTool = 'brush';
+            buildColorPalette();
+            updateToolButtons();
+            playClick();
+        }
+
+        function setupCanvasEvents() {
+            if (!coloringCanvas) return;
+            coloringCanvas.onpointerdown = (e) => {
+                if (coloringTool === 'fill') { floodFill(e); return; }
+                coloringIsDrawing = true;
+                saveUndoState();
+                const pos = getCanvasPos(e);
+                coloringCtx.beginPath();
+                coloringCtx.moveTo(pos.x, pos.y);
+                coloringCtx.strokeStyle = coloringTool === 'eraser' ? '#ffffff' : coloringColor;
+                coloringCtx.lineWidth = coloringTool === 'eraser' ? 20 : 4;
+                coloringCtx.lineCap = 'round';
+                coloringCtx.lineJoin = 'round';
+            };
+            coloringCanvas.onpointermove = (e) => {
+                if (!coloringIsDrawing || coloringTool === 'fill') return;
+                const pos = getCanvasPos(e);
+                coloringCtx.lineTo(pos.x, pos.y);
+                coloringCtx.stroke();
+            };
+            coloringCanvas.onpointerup = () => { coloringIsDrawing = false; coloringRedoStack = []; };
+            coloringCanvas.onpointerleave = () => { coloringIsDrawing = false; };
+        }
+
+        function getCanvasPos(e) {
+            const rect = coloringCanvas.getBoundingClientRect();
+            const scaleX = coloringCanvas.width / rect.width;
+            const scaleY = coloringCanvas.height / rect.height;
+            return {
+                x: (e.clientX - rect.left) * scaleX / coloringZoom - coloringPanX,
+                y: (e.clientY - rect.top) * scaleY / coloringZoom - coloringPanY
+            };
+        }
+
+        function floodFill(e) {
+            const pos = getCanvasPos(e);
+            const x = Math.round(pos.x);
+            const y = Math.round(pos.y);
+            if (x < 0 || y < 0 || x >= coloringCanvas.width || y >= coloringCanvas.height) return;
+            saveUndoState();
+            const imageData = coloringCtx.getImageData(0, 0, coloringCanvas.width, coloringCanvas.height);
+            const data = imageData.data;
+            const w = coloringCanvas.width;
+            const h = coloringCanvas.height;
+            const targetIdx = (y * w + x) * 4;
+            const targetR = data[targetIdx], targetG = data[targetIdx+1], targetB = data[targetIdx+2];
+            const fillR = parseInt(coloringColor.slice(1,3), 16);
+            const fillG = parseInt(coloringColor.slice(3,5), 16);
+            const fillB = parseInt(coloringColor.slice(5,7), 16);
+            if (Math.abs(targetR - fillR) < 3 && Math.abs(targetG - fillG) < 3 && Math.abs(targetB - fillB) < 3) return;
+            const stack = [[x, y]];
+            const visited = new Set();
+            const tolerance = 15;
+            while (stack.length > 0) {
+                const [cx, cy] = stack.pop();
+                const key = cx + ',' + cy;
+                if (visited.has(key) || cx < 0 || cy < 0 || cx >= w || cy >= h) continue;
+                const idx = (cy * w + cx) * 4;
+                if (Math.abs(data[idx] - targetR) > tolerance || Math.abs(data[idx+1] - targetG) > tolerance || Math.abs(data[idx+2] - targetB) > tolerance) continue;
+                visited.add(key);
+                data[idx] = fillR; data[idx+1] = fillG; data[idx+2] = fillB; data[idx+3] = 255;
+                stack.push([cx+1, cy], [cx-1, cy], [cx, cy+1], [cx, cy-1]);
+            }
+            coloringCtx.putImageData(imageData, 0, 0);
+            coloringRedoStack = [];
+            playClick();
+        }
+
+        function saveUndoState() {
+            if (!coloringCtx) return;
+            coloringUndoStack.push(coloringCtx.getImageData(0, 0, coloringCanvas.width, coloringCanvas.height));
+            if (coloringUndoStack.length > 40) coloringUndoStack.shift();
+        }
+
+        function undoCanvas() {
+            if (coloringUndoStack.length === 0) return;
+            playClick();
+            coloringRedoStack.push(coloringCtx.getImageData(0, 0, coloringCanvas.width, coloringCanvas.height));
+            const prev = coloringUndoStack.pop();
+            coloringCtx.putImageData(prev, 0, 0);
+            saveCanvasData();
+        }
+
+        function redoCanvas() {
+            if (coloringRedoStack.length === 0) return;
+            playClick();
+            coloringUndoStack.push(coloringCtx.getImageData(0, 0, coloringCanvas.width, coloringCanvas.height));
+            const next = coloringRedoStack.pop();
+            coloringCtx.putImageData(next, 0, 0);
+            saveCanvasData();
+        }
+
+        function clearCanvas() {
+            if (!coloringCtx) return;
+            playClick();
+            saveUndoState();
+            coloringCtx.fillStyle = '#ffffff';
+            coloringCtx.fillRect(0, 0, coloringCanvas.width, coloringCanvas.height);
+            coloringRedoStack = [];
+            loadColoringPageOutline();
+            saveCanvasData();
+        }
+
+        function zoomCanvas(delta) {
+            coloringZoom = Math.max(0.3, Math.min(3, coloringZoom + delta / 100));
+            document.getElementById('zoomLevel').textContent = Math.round(coloringZoom * 100);
+            coloringCanvas.style.transform = `scale(${coloringZoom}) translate(${coloringPanX}px,${coloringPanY}px)`;
+        }
+
+        function panCanvas(dir) {
+            const step = 20;
+            if (dir === 'left') coloringPanX += step;
+            if (dir === 'right') coloringPanX -= step;
+            if (dir === 'up') coloringPanY += step;
+            if (dir === 'down') coloringPanY -= step;
+            coloringCanvas.style.transform = `scale(${coloringZoom}) translate(${coloringPanX}px,${coloringPanY}px)`;
+        }
+
+        function resetPanZoom() {
+            coloringZoom = 1; coloringPanX = 0; coloringPanY = 0;
+            document.getElementById('zoomLevel').textContent = '100';
+            coloringCanvas.style.transform = 'scale(1) translate(0,0)';
+            playClick();
+        }
+
+        function saveCanvasData() {
+            if (!coloringCanvas) return;
+            coloringData = coloringCanvas.toDataURL();
+            saveAppState();
+        }
+
+        function saveArtwork() {
+            if (!coloringCanvas) return;
+            coloringData = coloringCanvas.toDataURL();
+            saveAppState();
+            playClick();
+            alert('Drawing save ho gayi! 💾');
+        }
+
+        function loadArtwork() {
+            if (coloringData && coloringCtx) {
+                const img = new Image();
+                img.onload = () => { coloringCtx.drawImage(img, 0, 0); coloringUndoStack = [coloringCtx.getImageData(0,0,coloringCanvas.width,coloringCanvas.height)]; };
+                img.src = coloringData;
+                playClick();
+            }
+        }
+
+        function downloadArtwork() {
+            if (!coloringCanvas) return;
+            const link = document.createElement('a');
+            link.download = 'mera-coloring-art.png';
+            link.href = coloringCanvas.toDataURL();
+            link.click();
+            playClick();
+        }
+
+        function loadColoringPage() {
+            if (!coloringCtx) return;
+            currentColoringPage = document.getElementById('coloringPage').value;
+            coloringCtx.fillStyle = '#ffffff';
+            coloringCtx.fillRect(0, 0, coloringCanvas.width, coloringCanvas.height);
+            coloringUndoStack = [coloringCtx.getImageData(0, 0, coloringCanvas.width, coloringCanvas.height)];
+            coloringRedoStack = [];
+            loadColoringPageOutline();
+            saveCanvasData();
+            playClick();
+        }
+
+        function loadColoringPageOutline() {
+            if (currentColoringPage === 'blank') return;
+            coloringCtx.strokeStyle = '#333333';
+            coloringCtx.lineWidth = 3;
+            coloringCtx.lineCap = 'round';
+            const cx = coloringCanvas.width / 2;
+            const cy = coloringCanvas.height / 2;
+            coloringCtx.beginPath();
+            switch (currentColoringPage) {
+                case 'cat': drawCat(coloringCtx, cx, cy); break;
+                case 'dog': drawDog(coloringCtx, cx, cy); break;
+                case 'rabbit': drawRabbit(coloringCtx, cx, cy); break;
+                case 'bird': drawBird(coloringCtx, cx, cy); break;
+                case 'fish': drawFish(coloringCtx, cx, cy); break;
+                case 'elephant': drawElephant(coloringCtx, cx, cy); break;
+                case 'butterfly': drawButterfly(coloringCtx, cx, cy); break;
+                case 'rose': drawRose(coloringCtx, cx, cy); break;
+                case 'sunflower': drawSunflower(coloringCtx, cx, cy); break;
+                case 'tulip': drawTulip(coloringCtx, cx, cy); break;
+                case 'tree': drawTree(coloringCtx, cx, cy); break;
+                case 'mountain': drawMountain(coloringCtx, cx, cy); break;
+                case 'sun': drawSun(coloringCtx, cx, cy); break;
+                case 'car': drawCar(coloringCtx, cx, cy); break;
+                case 'apple': drawApple(coloringCtx, cx, cy); break;
+                case 'strawberry': drawStrawberry(coloringCtx, cx, cy); break;
+                case 'watermelon': drawWatermelon(coloringCtx, cx, cy); break;
+                case 'house': drawHouse(coloringCtx, cx, cy); break;
+                case 'star': drawStar(coloringCtx, cx, cy); break;
+                case 'heart': drawHeart(coloringCtx, cx, cy); break;
+            }
+            coloringCtx.stroke();
+        }
+
+        // Canvas Drawings helper functions
+        function drawCat(ctx, cx, cy) {
+            ctx.arc(cx, cy+30, 50, 0, Math.PI*2);
+            ctx.moveTo(cx-35, cy-20); ctx.lineTo(cx-45, cy-70); ctx.lineTo(cx-15, cy-35);
+            ctx.moveTo(cx+35, cy-20); ctx.lineTo(cx+45, cy-70); ctx.lineTo(cx+15, cy-35);
+            ctx.moveTo(cx-15, cy+15); ctx.arc(cx-15, cy+15, 7, 0, Math.PI);
+            ctx.moveTo(cx+15, cy+15); ctx.arc(cx+15, cy+15, 7, 0, Math.PI);
+            ctx.moveTo(cx, cy+35); ctx.lineTo(cx, cy+70);
+            ctx.moveTo(cx-40, cy+65); ctx.lineTo(cx-60, cy+90);
+            ctx.moveTo(cx+40, cy+65); ctx.lineTo(cx+60, cy+90);
+        }
+        function drawDog(ctx, cx, cy) {
+            ctx.arc(cx, cy+30, 48, 0, Math.PI*2);
+            ctx.moveTo(cx-40, cy-20); ctx.arc(cx-40, cy-30, 18, Math.PI, 0);
+            ctx.moveTo(cx+40, cy-20); ctx.arc(cx+40, cy-30, 18, Math.PI, 0);
+            ctx.moveTo(cx-5, cy+10); ctx.arc(cx-5, cy+12, 8, 0, Math.PI);
+            ctx.moveTo(cx+5, cy+10); ctx.arc(cx+5, cy+12, 8, 0, Math.PI);
+            ctx.moveTo(cx-12, cy+35); ctx.lineTo(cx+12, cy+35);
+            ctx.moveTo(cx, cy+75); ctx.lineTo(cx, cy+120);
+        }
+        function drawRabbit(ctx, cx, cy) {
+            ctx.arc(cx, cy+25, 40, 0, Math.PI*2);
+            ctx.moveTo(cx-15, cy-15); ctx.lineTo(cx-10, cy-80); ctx.lineTo(cx-25, cy-60);
+            ctx.moveTo(cx+15, cy-15); ctx.lineTo(cx+10, cy-80); ctx.lineTo(cx+25, cy-60);
+            ctx.moveTo(cx-20, cy+10); ctx.arc(cx-20, cy+15, 10, 0, Math.PI);
+            ctx.moveTo(cx+20, cy+10); ctx.arc(cx+20, cy+15, 10, 0, Math.PI);
+        }
+        function drawBird(ctx, cx, cy) {
+            ctx.arc(cx, cy+10, 30, 0, Math.PI*2);
+            ctx.moveTo(cx+25, cy+5); ctx.lineTo(cx+45, cy-10); ctx.lineTo(cx+25, cy-5);
+            ctx.moveTo(cx-15, cy+35); ctx.lineTo(cx-30, cy+55);
+            ctx.moveTo(cx+15, cy+35); ctx.lineTo(cx+30, cy+55);
+        }
+        function drawFish(ctx, cx, cy) {
+            ctx.ellipse(cx, cy, 55, 30, 0, 0, Math.PI*2);
+            ctx.moveTo(cx+50, cy); ctx.lineTo(cx+80, cy-25); ctx.lineTo(cx+80, cy+25); ctx.closePath();
+        }
+        function drawElephant(ctx, cx, cy) {
+            ctx.arc(cx, cy+20, 55, 0, Math.PI*2);
+            ctx.moveTo(cx-45, cy-30); ctx.arc(cx-45, cy-40, 22, 0, Math.PI*2);
+            ctx.moveTo(cx-60, cy+10); ctx.lineTo(cx-80, cy+30); ctx.lineTo(cx-55, cy+30);
+        }
+        function drawButterfly(ctx, cx, cy) {
+            ctx.ellipse(cx-30, cy-20, 28, 40, -0.3, 0, Math.PI*2);
+            ctx.ellipse(cx+30, cy-20, 28, 40, 0.3, 0, Math.PI*2);
+            ctx.moveTo(cx, cy-55); ctx.lineTo(cx-5, cy-75); ctx.lineTo(cx+5, cy-75); ctx.closePath();
+        }
+        function drawRose(ctx, cx, cy) {
+            ctx.arc(cx, cy, 25, 0, Math.PI*2);
+            ctx.moveTo(cx, cy+25); ctx.lineTo(cx, cy+110);
+        }
+        function drawSunflower(ctx, cx, cy) {
+            ctx.arc(cx, cy, 25, 0, Math.PI*2);
+            ctx.moveTo(cx, cy+25); ctx.lineTo(cx, cy+110);
+        }
+        function drawTulip(ctx, cx, cy) {
+            ctx.arc(cx, cy, 25, 0, Math.PI*2);
+            ctx.moveTo(cx, cy+25); ctx.lineTo(cx, cy+110);
+        }
+        function drawTree(ctx, cx, cy) {
+            ctx.arc(cx, cy-20, 55, 0, Math.PI*2);
+            ctx.moveTo(cx, cy+35); ctx.lineTo(cx, cy+120);
+        }
+        function drawMountain(ctx, cx, cy) {
+            ctx.moveTo(cx-120, cy+80); ctx.lineTo(cx-40, cy-60); ctx.lineTo(cx+20, cy+30); ctx.lineTo(cx+130, cy+80);
+        }
+        function drawSun(ctx, cx, cy) {
+            ctx.arc(cx, cy, 40, 0, Math.PI*2);
+        }
+        function drawCar(ctx, cx, cy) {
+            ctx.rect(cx-50, cy-20, 100, 40);
+        }
+        function drawApple(ctx, cx, cy) {
+            ctx.arc(cx, cy, 40, 0, Math.PI*2);
+        }
+        function drawStrawberry(ctx, cx, cy) {
+            ctx.arc(cx, cy, 35, 0, Math.PI*2);
+        }
+        function drawWatermelon(ctx, cx, cy) {
+            ctx.arc(cx, cy, 45, 0, Math.PI);
+        }
+        function drawHouse(ctx, cx, cy) {
+            ctx.rect(cx-40, cy-10, 80, 60);
+            ctx.moveTo(cx-50, cy-10); ctx.lineTo(cx, cy-60); ctx.lineTo(cx+50, cy-10); ctx.closePath();
+        }
+        function drawStar(ctx, cx, cy) {
+            ctx.arc(cx, cy, 40, 0, Math.PI*2);
+        }
+        function drawHeart(ctx, cx, cy) {
+            ctx.arc(cx, cy, 40, 0, Math.PI*2);
+        }
+
+        // ==================== TRUTH OR DARE ====================
+        const truthQuestions = {
+            kids: [
+                "Tumhara sabse pasandida cartoon kaun sa hai?",
+                "Kya tumne kabhi dinner se pehle chupke se chocolate khayi hai?",
+                "Sabse funny face bana kar dikhao!",
+                "Tumhara secret talent kya hai?",
+                "Kya tum abhi bhi teddy bear ke sath sote ho?",
+                "Sabse mazedaar chutkula kaun sa yaad hai?",
+                "Kya tumne kabhi apni galti apne bhai/behen par daali hai?",
+                "Sabse pasandida ice cream ka flavour kaun sa hai?",
+                "Kya tum apne pet ya khilono se baatein karte ho?",
+                "School me sabse embarrassing moment kya tha?"
+            ],
+            friends: [
+                "Aaj tak ka sabse bada jhoot jo apne dost se bola ho?",
+                "Kya tumne kabhi kisi ka phone jaan bujh kar ignore kiya hai?",
+                "Tumhari sabse gandi aadat kaun si hai?",
+                "Tumhara pehla crush kaun tha?",
+                "Kya tumne kabhi kisi dost ki peeth piche burai ki hai?",
+                "Sabse kharab salah kisko di hai?",
+                "Kya tumne kabhi dukan se bina bataye kuch churaya hai?",
+                "Tumhara sabse bada dar kya hai?",
+                "Kya tumne kabhi kisi ka diya hua gift pasand na aane par bhi jhoothi taarif ki hai?",
+                "Sabse sharmnak message jo galti se kisi aur ko bhej diya ho?"
+            ],
+            family: [
+                "Ghar ka koi aisa secret jo kisi ko na pata ho?",
+                "Family me sabse zyada kiski baat mante ho?",
+                "Kya tumne kabhi gharwalo ki chupke se baatein suni hain?",
+                "Bachpan me sabse badi daant kis baat par padi thi?",
+                "Kya tumne kabhi parents se jhoot bola hai ki kahan ja rahe ho?",
+                "Family ki kaun si aadat tumhe bilkul pasand nahi?",
+                "Kya tumne kabhi ghar ki koi cheez tod kar chupai ho?",
+                "Sabse awkward family dinner moment kaun sa tha?",
+                "Aisa kaun sa hunar hai jo family ko nahi pata?",
+                "Bachpan ki kaun si baat yaad karke hasi aati hai?"
+            ],
+            funny: [
+                "Aisi ajeeb se ajeeb cheez kya khayi hai jo koi nahi khata?",
+                "Kya tum kabhi chalte-chalte kaanch ke darwaze se takraye ho?",
+                "Sabse ajeeb autocorrect message kya gaya hai?",
+                "Kya tum kabhi sabke samne achanak gir pade ho?",
+                "Kis cheez se sabse zyada darr lagta hai jo bohot silly hai?",
+                "Kya tum akele me sheeshe ke samne baatein karte ho?",
+                "Sabse ajeeb kapde kaun se pehne hain life me?",
+                "Kabhi itna hanse ho ki aakhon se aansu aa gaye ho?",
+                "Khana banate waqt sabse bada kand kya kiya hai?",
+                "Kya kabhi kisi aur ko wave kar diya jo tumhe nahi dekh raha tha?"
+            ],
+            party: [
+                "Party me sabse ajeeb harkat kya ki hai?",
+                "Kya kabhi bina bulaye kisi ki party me gaye ho?",
+                "Tumhara secret party trick kya hai?",
+                "Kya kabhi table par chadh kar dance kiya hai?",
+                "Party me sabse sharmnak pal kaun sa tha?",
+                "Kya party me kabhi kisi ko kiss kiya hai?",
+                "Sabse boring party kaun si thi?",
+                "Party se sabse aakhiri me nikalne wale insaan ho kya?",
+                "Kaun sa party game bilkul pasand nahi?",
+                "Kya kabhi galti se kisi ke upar cold drink gira di hai?"
+            ],
+            couples: [
+                "Tumhare liye perfect date ka matlab kya hai?",
+                "Aaj tak ki sabse romantic cheez kya ki hai?",
+                "Kya kabhi tumhara koi secret admirer raha hai?",
+                "Relationship ko lekar sabse bada dar kya hai?",
+                "Kaun sa gaana sunkar pyaar ki yaad aati hai?",
+                "Kya kabhi kisi ke liye love letter likha hai?",
+                "Sabse acchi relationship advice kya mili hai?",
+                "Kya kabhi blind date par gaye ho?",
+                "Partner me sabse acchi quality kya lagti hai?",
+                "Sabse pyara gift jo aaj tak mila ho?"
+            ],
+            extreme: [
+                "Zindagi ka sabse khatarnak kaam kya kiya hai?",
+                "Kya kabhi koi haddi (bone) tuti hai?",
+                "Zindagi me sabse bada pachtawa (regret) kya hai?",
+                "Kya school ya college me kabhi ladai ki hai?",
+                "Sabse bada rule todne wala kaam kaun sa kiya hai?",
+                "Kya exam me kabhi cheating ki hai?",
+                "Sabse bada dhokha life me kisse mila hai?",
+                "Kya kabhi police station ya jail ki hawa khayi hai?",
+                "Aisa kaun sa raaz hai jo kisi ko nahi bataya?",
+                "Google search history me sabse ajeeb cheez kya search ki hai?"
+            ]
+        };
+
+        const dareChallenges = {
+            kids: [
+                "Abhi ke abhi 20 jumping jacks lagao!",
+                "30 second tak sabse funny face bana kar rakho",
+                "ABC alphabet ulta (reverse) ga kar sunao",
+                "Ek pair par 30 second tak khade raho",
+                "Ek mazedaar dance karke dikhao",
+                "20 second tak alag-alag janwaro ki aawaz nikaalo",
+                "Apni jagah par 10 baar gol-gol ghumo",
+                "Penguin ki tarah kamre me chal kar dikhao",
+                "Tongue twister 'Peter Piper...' 3 baar tezi se bolo",
+                "Aankh band karke ek choti si drawing banao"
+            ],
+            friends: [
+                "Group chat par apni ek funny selfie bhejo",
+                "Agke 3 round tak sirf ajeeb accent me baat karo",
+                "15 push-ups lagao abhi",
+                "Kisi dost ko phone karke Happy Birthday wish karo",
+                "Social media par ek ajeeb si photo post karo",
+                "Kisi ko bhi bolo ki tumhare baal set kare",
+                "Apne kisi dost ki mimicry karke dikhao",
+                "Apne crush ko ek funny meme message karo",
+                "10 minute tak apne haatho me socks pehn kar raho",
+                "Koi trending dance steps karke dikhao"
+            ],
+            family: [
+                "Kamre me maujood har family member ko hug karo",
+                "Bina kahe ghar ke bartan saaf karo ya kitchen me help karo",
+                "Sabhi family members ki ek-ek acchi taarif karo",
+                "Apni family ke upar ek chota sa act karke dikhao",
+                "Family ke liye apne hatho se kuch bana kar laao",
+                "Ek funny aawaz me choti si kahani sunao",
+                "Living room ki achhe se safai karo",
+                "Kisi family member ke liye handmade card banao",
+                "Ghar ke kisi bade ki nakal utaar kar dikhao",
+                "Apni koi sabse pyaari family memory share karo"
+            ],
+            funny: [
+                "2 minute tak robot ki aawaz me baat karo",
+                "30 second tak billi (cat) ban kar raho",
+                "Zor-zor se chicken dance karo",
+                "Agke 1 minute tak sirf sawal hi pooch sakte ho",
+                "Kagaz ki ek ajeeb topi pehn kar ghumo",
+                "Opero singer ki tarah gane gate hue apni agli baat bolo",
+                "2 minute tak har jagah ulta (backward) chal kar dikhao",
+                "Apne bagal wale dost ke upar ek rap song banao",
+                "Phone ke kisi message ko drama style me padh kar sunao",
+                "TV news anchor ki tarah weather report do"
+            ],
+            party: [
+                "Sabko piche lagakar ek conga dance line banao",
+                "Ek glass pani aise piyo jaise life ka sabse mehnati kaam ho",
+                "Zor se karaoke song ga kar sunao",
+                "Kahin bhi dance-off shuru kar do",
+                "Kisi bhi ajeeb cheez ke liye ek toast/speech do",
+                "Lampshade ya hat ko sar par pehn kar raho",
+                "Kisi ke sath trust fall karke dikhao",
+                "Kursi par khade hokar ek chutkula sunao",
+                "Naye dost ke sath ek naya handshake banao",
+                "Sabke sath funny faces banakar group selfie lo"
+            ],
+            couples: [
+                "Apne partner ke liye koi romantic gaana gaao",
+                "Partner ke upar ek choti si poem sunao",
+                "2 minute tak partner ke shoulders ki massage karo",
+                "Bina music ke slow dance karo",
+                "Aankh band karke partner ko kuch khilao",
+                "Apni sath ki sabse khubsurat yaad share karo",
+                "Partner ko 3 sachi taarifein do",
+                "Ek dream date ka plan zorse bol kar batao",
+                "30 second tak bina bole ek dusre ki aankho me dekho",
+                "Partner ke kaan me kuch meetha bolo"
+            ],
+            extreme: [
+                "30 second tak thande paani se nahao",
+                "Ek chammach red chilli sauce/ketchup khao",
+                "60 second tak continuous plank pose me raho",
+                "Bina kisi filter ke apni real selfie post karo",
+                "Apna sabse zyada use hone wala app 24 ghante ke liye delete kar do",
+                "5 minute tak jo bhi bolo rhyme karke bolo",
+                "Apna phone 30 second ke liye kisi ko bhi check karne do",
+                "50 squats pure karo",
+                "1 ghante ke liye apne kapde ulte pehn kar raho",
+                "Apni mom ko phone karke bolo ki aap unse bohot pyaar karte ho"
+            ]
+        };
+
+        function expandArray(arr, target) {
+            const base = [...arr];
+            while (arr.length < target) {
+                const b = base[arr.length % base.length];
+                arr.push(b + ' (Part ' + Math.floor(arr.length / base.length + 1) + ')');
+            }
+            return arr;
+        }
+        Object.keys(truthQuestions).forEach(k => { truthQuestions[k] = expandArray(truthQuestions[k], 45); });
+        Object.keys(dareChallenges).forEach(k => { dareChallenges[k] = expandArray(dareChallenges[k], 45); });
+
+        let todUsed = [], todFavorites = [], currentTOD = null, currentTODType = 'truth';
+
+        function getRandomTOD(type) {
+            const cat = document.getElementById('todCategory').value;
+            const source = type === 'truth' ? truthQuestions : dareChallenges;
+            let pool = [];
+            if (cat === 'all') {
+                Object.values(source).forEach(arr => pool = pool.concat(arr));
+            } else if (source[cat]) {
+                pool = source[cat];
+            } else {
+                Object.values(source).forEach(arr => pool = pool.concat(arr));
+            }
+            const unused = pool.filter((_, i) => !todUsed.includes(type + '_' + cat + '_' + i));
+            if (unused.length === 0) {
+                todUsed = [];
+                alert('Sare sawal khatam ho gaye! Phir se shuru kar rahe hain...');
+                return pool[Math.floor(Math.random() * pool.length)];
+            }
+            const chosen = unused[Math.floor(Math.random() * unused.length)];
+            const origIdx = pool.indexOf(chosen);
+            todUsed.push(type + '_' + cat + '_' + origIdx);
+            saveAppState();
+            return chosen;
+        }
+
+        function getTruth() {
+            playClick();
+            currentTOD = getRandomTOD('truth');
+            currentTODType = 'truth';
+            document.getElementById('todDisplay').textContent = '✅ SACH (TRUTH): ' + currentTOD;
+            document.getElementById('todDisplay').style.borderLeft = '4px solid #6c5ce7';
+            updateTODCounts();
+        }
+
+        function getDare() {
+            playClick();
+            currentTOD = getRandomTOD('dare');
+            currentTODType = 'dare';
+            document.getElementById('todDisplay').textContent = '🔥 HIMMAT (DARE): ' + currentTOD;
+            document.getElementById('todDisplay').style.borderLeft = '4px solid #fd79a8';
+            updateTODCounts();
+        }
+
+        function copyTOD() {
+            if (!currentTOD) return;
+            navigator.clipboard.writeText(currentTOD).then(() => { playClick(); alert('Copy ho gaya! 📋'); });
+        }
+
+        function toggleFavoriteTOD() {
+            if (!currentTOD) return;
+            const idx = todFavorites.indexOf(currentTOD);
+            if (idx >= 0) todFavorites.splice(idx, 1);
+            else todFavorites.push(currentTOD);
+            updateTODCounts();
+            saveAppState();
+            playClick();
+        }
+
+        function showFavoritesTOD() {
+            if (todFavorites.length === 0) { alert('Koi favorite save nahi hai!'); return; }
+            document.getElementById('todDisplay').textContent = '⭐ FAVORITES:\n\n' + todFavorites.join('\n\n');
+            playClick();
+        }
+
+        function shuffleRemainingTOD() { todUsed = []; updateTODCounts(); saveAppState(); playClick(); }
+
+        function updateTODCounts() {
+            let total = 0;
+            Object.values(truthQuestions).forEach(a => total += a.length);
+            Object.values(dareChallenges).forEach(a => total += a.length);
+            document.getElementById('todRemaining').textContent = Math.max(0, total - todUsed.length);
+            document.getElementById('todFavCount').textContent = todFavorites.length;
+        }
+
+        // ==================== RANDOM CHALLENGE ====================
+        const challenges = {
+            funny: [
+                "20 second tak aise dance karo jaise koi nahi dekh raha! 💃",
+                "1 minute tak robot ki aawaz me baat karo 🤖",
+                "30 second tak billi ban kar dikhao 🐱",
+                "Kisi mashoor celebrity ki nakal utaro 🎭",
+                "Kamre me penguin ki tarah chalo 🐧",
+                "2 minute tak jo bhi bolo gaate hue bolo 🎤",
+                "Apne din ke upar ek rap bana kar sunao 🎵",
+                "Zor-zor se chicken dance karo 🐔",
+                "Pirate (samundari daku) ki tarah baat karo 🏴‍☠️",
+                "Kagaz ki ek ajeeb topi pehno 📄",
+                "Slow-motion me chal kar dikhao 🎬",
+                "News reporter ki tarah acting karo 📺",
+                "30 second tak ajeeb faces banao 😜",
+                "5 alag-alag tarike se has kar dikhao 😂",
+                "Opero singer ki tarah announcement karo 🎭"
+            ],
+            fitness: [
+                "20 jumping jacks lagao turant! 🏃",
+                "45 second tak plank position me raho 💪",
+                "15 squats karo 🦵",
+                "60 second tak ek pair par khade raho 🦶",
+                "10 pushups lagao 🤸",
+                "30 second tak jagah par bhago 🏃‍♂️",
+                "25 crunches karo 🏋️",
+                "2 minute tak body stretch karo 🧘",
+                "10 baar jitna uncha ho sake kudo ⬆️",
+                "40 second tak wall-sit karo 🧱",
+                "20 lunges lagao 🚶",
+                "30 second high knees karo 🦵",
+                "20 second superman pose me raho 🦸",
+                "15 burpees lagao (khatarnak!) 💀",
+                "20 baar apne pair ke angoothe ko touch karo 🤸‍♀️"
+            ],
+            creative: [
+                "Aankh band karke koi drawing banao 🎨",
+                "Kamre ke bare me 4 line ki poem likho 📝",
+                "Apne dost ke sath ek naya handshake banao 🤝",
+                "30 second me ek choti si kahani banao 📖",
+                "As pas ki cheezon se kuch naya banao 🔨",
+                "Ek naya emoji design karo ✏️",
+                "Kagaz ka aeroplane bana kar udao ✈️",
+                "Hath ki shadow se janwar banao 🐰",
+                "Apne mann se koi nayi dhun hum karo 🎶",
+                "Origami se paper craft banao 📐",
+                "1 minute me kisi ka face sketch karo 🖼️",
+                "Ek naya dance step invent karo 💃",
+                "Technology par ek choti si kavita likho 📱",
+                "Apna ek secret code banao 🔐",
+                "Superhero ka costume design karo 🦸"
+            ],
+            family: [
+                "Sabhi gharwalo ko ek sath hug karo 🤗",
+                "Har ek family member ki ek acchi baat bolo 💝",
+                "Apni sabse pyari family memory sunao 📖",
+                "Bina bole ghar ka koi kaam kar do 🧹",
+                "Kisi ke liye pyaara sa greeting card banao ✉️",
+                "Milkar ek gaana gaao 🎤",
+                "Sabke sath rock-paper-scissors khelo ✊",
+                "Koi hasane wali family story sunao 😂",
+                "Kisi ki kaam me madad karo 🤝",
+                "Aaj aap kis cheez ke liye shukrguzaar ho batao 🙏",
+                "Sabke sath milkar high-five do ✋",
+                "Family photo ke liye koi ajeeb pose banao 📸",
+                "Batao ki har member aapke liye kyun khaas hai 💖",
+                "Family ka ek naya slogan banao 📣",
+                "Milkar koi fun activity plan karo 🎯"
+            ],
+            friends: [
+                "Kisi dost ko ek funny meme bhejo 📱",
+                "Apne best friend ko ek naya nickname do ✨",
+                "Koi embarrassing kissa share karo 😳",
+                "Kisi ke sath trust fall khelo 🤝",
+                "Ek funny group selfie lo 🤳",
+                "Taarifon ki chain shuru karo 💬",
+                "Dost ke sath staring contest (aankh ladana) khelo 👀",
+                "Apna sabse accha chutkula sunao 😂",
+                "Ek secret handshake fix karo 🤝",
+                "Purani yaadein taza karo 💭",
+                "Kisi message ko dramatic style me padho 📖",
+                "Thumb war (angutha yuddh) khelo 👍",
+                "Dost ke shoulders ki malish karo 💆",
+                "Pinky promise karo 🤙",
+                "Dosti ke naam par toast karo 🥂"
+            ],
+            indoor: [
+                "Pillow (takiye) ka fort/ghar banao 🏰",
+                "Chhota sa karaoke session rakho 🎤",
+                "2 minute me puzzle solve karo 🧩",
+                "Room ka thoda saman idhar-udhar set karo 🔄",
+                "Ghar ke andar obstacle course banao 🏃",
+                "Ghar me tea-party khelo ☕",
+                "Cards (patte) ka tower banao 🃏",
+                "Bottle se indoor bowling khelo 🎳",
+                "Ghar me scavenger hunt rakho 🔍",
+                "Staring contest khelo 👀",
+                "Deewar par shadow animals banao 🐾",
+                "Funny aawaz me koi book padho 📚",
+                "Paper se indoor garden banao 🌱",
+                "Sock (moze) se hot potato khelo 🧦",
+                "Silent disco party karo (headphones me) 🎧"
+            ],
+            outdoor: [
+                "Bahar jaakar 5 alag-alag patte (leaves) dhoondo 🍂",
+                "3 alag tarah ki chidiya dekho 🐦",
+                "5 minute ke liye nature walk par jao 🌿",
+                "10 acche-accache patthar collect karo 🪨",
+                "Bahar ki kisi khubsurat cheez ki photo lo 📸",
+                "Ghar ke bahar block ke chakkar kaato 🏃",
+                "Char patti wala ghaas (clover) dhoondo 🍀",
+                "Nature ki cheezon se rangoli/design banao 🌸",
+                "1 minute tak skipping karo 🎀",
+                "Chote se pahadi ya dher par chadh jao ⛰️",
+                "Aasman me badal dekho (cloud watching) ☁️",
+                "Kuch ped ya paudhe lagao 🌱",
+                "Chhota sa outdoor tent banao 🏕️",
+                "Sabse bada ped dhoondo 🌳",
+                "5 cartwheels lagao 🤸"
+            ],
+            easy: [
+                "1 minute tak lagataar haste raho 😊",
+                "30 baar taali bajao 👏",
+                "Alphabet ko ulta bolo 🔤",
+                "Koi acchi si dhun seeti bajao 🎵",
+                "20 baar chutki (finger snap) bajao 🤌",
+                "3-3 karke 50 tak ginti gino 🔢",
+                "10 alag-alag janwaro ke naam batao 🦁",
+                "Kisi ko ankh maro (wink) 😉",
+                "15 second tak peace sign bana kar rakho ✌️",
+                "5 alag bhashao me hello bolo 🌍",
+                "5 baar gol-gol ghumo 🌀",
+                "Ek hath se sir sahlao aur dusre se pet rub karo 🖐️",
+                "Ek pair par 10 baar kudo 1",
+                "Apne haatho se rainbow shape banao 🌈",
+                "Sabko flying kiss bhejo 😘"
+            ],
+            hard: [
+                "Deewar ke sahare handstand lagao 🤸",
+                "Tongue twister ko 5 baar tezi se bolo 👅",
+                "30 pushups/burpees karo 💀",
+                "45 second tak saans rok kar rakho 😤",
+                "1 minute tak wall-sit karke dikhao 🧱",
+                "3 cheezon se juggling karke dikhao 🤹",
+                "Ek acchi si cartwheel lagao 🤸‍♀️",
+                "Apne dimaag me ek kathin maths sawal solve karo 🧮",
+                "Sar par book rakh kar chal kar dikhao 📚",
+                "25 diamond pushups lagao 💪",
+                "2 minute tak apne panjo (tiptoes) par khade raho 🩰",
+                "Full split karne ki koshish karo 🧘",
+                "Ek lambi poem yaad karke sunao 📖",
+                "30 second tak bridge pose me raho 🌉",
+                "Aankh band karke obstacle rasta cross karo 🙈"
+            ]
+        };
+
+        Object.keys(challenges).forEach(k => { challenges[k] = expandArray(challenges[k], 60); });
+
+        let rcUsed = [], rcFavorites = [], rcCompletedCount = 0, currentRC = null;
+
+        function getRandomChallengeFromPool() {
+            const cat = document.getElementById('rcCategory').value;
+            let pool = [];
+            if (cat === 'all') {
+                Object.values(challenges).forEach(arr => pool = pool.concat(arr));
+            } else if (challenges[cat]) {
+                pool = challenges[cat];
+            } else {
+                Object.values(challenges).forEach(arr => pool = pool.concat(arr));
+            }
+            const unused = pool.filter((_, i) => !rcUsed.includes(cat + '_' + i));
+            if (unused.length === 0) {
+                rcUsed = [];
+                alert('Sare challenges khatam ho gaye! Phir se shuru kar rahe hain...');
+                return pool[Math.floor(Math.random() * pool.length)];
+            }
+            const chosen = unused[Math.floor(Math.random() * unused.length)];
+            const origIdx = pool.indexOf(chosen);
+            rcUsed.push(cat + '_' + origIdx);
+            saveAppState();
+            return chosen;
+        }
+
+        function getRandomChallenge() {
+            playClick();
+            currentRC = getRandomChallengeFromPool();
+            document.getElementById('rcDisplay').textContent = '🔥 ' + currentRC;
+            document.getElementById('spinnerWheel').classList.remove('stopping');
+            updateRCCounts();
+        }
+
+        function spinChallenge() {
+            playSpinSound();
+            const wheel = document.getElementById('spinnerWheel');
+            wheel.classList.remove('stopping');
+            void wheel.offsetWidth;
+            wheel.classList.add('stopping');
+            document.getElementById('rcDisplay').textContent = '🎰 Spin ho raha hai...';
+            setTimeout(() => {
+                currentRC = getRandomChallengeFromPool();
+                document.getElementById('rcDisplay').textContent = '🔥 ' + currentRC;
+                updateRCCounts();
+                playBeep(1000, 0.2, 'sine');
+            }, 1600);
+        }
+
+        function copyRC() {
+            if (!currentRC) return;
+            navigator.clipboard.writeText(currentRC).then(() => { playClick(); alert('Copy ho gaya! 📋'); });
+        }
+
+        function toggleFavoriteRC() {
+            if (!currentRC) return;
+            const idx = rcFavorites.indexOf(currentRC);
+            if (idx >= 0) rcFavorites.splice(idx, 1);
+            else rcFavorites.push(currentRC);
+            updateRCCounts();
+            saveAppState();
+            playClick();
+        }
+
+        function markCompletedRC() {
+            if (!currentRC) return;
+            rcCompletedCount++;
+            updateRCCounts();
+            saveAppState();
+            playClick();
+        }
+
+        function shuffleRemainingRC() { rcUsed = []; updateRCCounts(); saveAppState(); playClick(); }
+
+        function updateRCCounts() {
+            document.getElementById('rcCompleted').textContent = rcCompletedCount;
+        }
+
+        // ==================== INIT ====================
+        function init() {
+            applyDarkMode();
+            document.getElementById('soundBtn').textContent = soundEnabled ? 'On 🔊' : 'Off 🔇';
+            loadAppState();
+            updateTTTScores();
+            updateTODCounts();
+            updateRCCounts();
+            document.getElementById('floatingHome').style.display = 'none';
+            if (currentScreen && currentScreen !== 'homeScreen') {
+                showScreen(currentScreen);
+            }
+        }
+
+        init();
+        console.log('🎮 4-in-1 Offline Games (Hinglish Edition) Ready!');
+    </script>
+</body>
+</html>
